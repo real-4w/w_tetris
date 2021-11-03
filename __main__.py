@@ -54,3 +54,104 @@ class Figure:
     # increments to the next rotation of any type of figure
     def rotate(self):
         self.rotation = (self.rotation + 1) % (len(self.figures[self.type])) 
+
+class Tetris:
+    lines_cleared = 0
+    score = 0 
+    state = "start"
+    field = [] 
+    HEIGHT = 0
+    WIDTH = 0 
+    startX = 100 
+    startY = 50
+    zoom = 20 
+    figure = None 
+
+    def __init__(self, height, width):
+        self.field = []  
+        self.figure = None 
+        self.height = height 
+        self.width = width
+        for i in range(height):
+            new_line = []
+            for j in range(width):
+                new_line.append(0)
+            self.field.append(new_line)   
+
+    def create_figure(self):
+        self.figure = Figure(3, 0)
+ 
+    def intersects(self):
+        intersects = False 
+        for i in range(4):
+            for j in range(4):
+                if (i * 4) + j in self.figure.get_image():
+                    if (i + self.figure.y) > (self.height - 1) or \
+                        (j + self.figure.x) > (self.width - 1) or \
+                        (j + self.figure.x) < 0 or \
+                        self.field[i + self.figure.y][j + self.figure.x] > 0:
+                        intersects = True 
+        return intersects 
+
+    def freeze_figure(self):
+        for i in range(4):
+            for j in range(4):
+                if i * 4 + j in self.figure.get_image():
+                    self.field[i + self.figure.y][j + self.figure.x] = self.figure.color        
+        self.break_lines()
+        self.create_figure()
+        if self.intersects():
+            self.state = "gameover"      
+
+    def break_lines(self):
+        lines = 0 
+        for i in range(1, self.height):
+            zeros = 0 
+            for j in range(0, self.width):
+                if self.field[i][j] == 0:
+                    zeros += 1
+                
+            if zeros == 0:
+                lines += 1
+                for i1 in range(i, 1, -1):
+                    for j in range(self.width):
+                        self.field[i1][j] = self.field[i1 - 1][j]        
+        self.score += lines ** 2
+        self.lines_cleared += lines 
+        self.check_level_up() 
+    
+    def check_level_up(self):
+        global level 
+        global lines_to_clear 
+        if self.lines_cleared >= level:
+            level += 1
+            lines_to_clear = level 
+            self.lines_cleared = 0 
+            return True 
+        else:
+            lines_to_clear = level - self.lines_cleared 
+            return False 
+
+    def go_space(self):
+        while not self.intersects():
+            self.figure.y += 1
+        self.figure.y -= 1 
+        self.freeze_figure()
+
+    def go_down(self):
+        self.figure.y += 1
+        if self.intersects():
+            self.figure.y -= 1
+            self.freeze_figure()
+
+    def go_sideways(self, dx):
+        previous_x = self.figure.x 
+        self.figure.x += dx  
+        if self.intersects():
+            self.figure.x = previous_x  
+
+    def rotate(self):
+        previous_rotation = self.figure.rotation
+        self.figure.rotate()
+        if self.intersects():
+            self.figure.rotation = previous_rotation   
